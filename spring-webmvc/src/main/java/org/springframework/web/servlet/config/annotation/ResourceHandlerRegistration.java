@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,13 @@
 
 package org.springframework.web.servlet.config.annotation;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.cache.Cache;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.CacheControl;
 import org.springframework.util.Assert;
-import org.springframework.web.servlet.config.MvcNamespaceUtils;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 
@@ -41,13 +36,9 @@ import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
  */
 public class ResourceHandlerRegistration {
 
-	private final ResourceLoader resourceLoader;
-
 	private final String[] pathPatterns;
 
-	private final List<Resource> locations = new ArrayList<Resource>();
-
-	private final Map<Resource, Charset> locationCharsets = new HashMap<Resource, Charset>();
+	private final List<String> locationValues = new ArrayList<String>();
 
 	private Integer cachePeriod;
 
@@ -58,14 +49,13 @@ public class ResourceHandlerRegistration {
 
 	/**
 	 * Create a {@link ResourceHandlerRegistration} instance.
-	 * @param resourceLoader a resource loader for turning a String location into a {@link Resource}
 	 * @param pathPatterns one or more resource URL path patterns
 	 */
-	public ResourceHandlerRegistration(ResourceLoader resourceLoader, String... pathPatterns) {
+	public ResourceHandlerRegistration(String... pathPatterns) {
 		Assert.notEmpty(pathPatterns, "At least one path pattern is required for resource handling.");
-		this.resourceLoader = resourceLoader;
 		this.pathPatterns = pathPatterns;
 	}
+
 
 	/**
 	 * Add one or more resource locations from which to serve static content.
@@ -86,8 +76,7 @@ public class ResourceHandlerRegistration {
 	 * chained method invocation
 	 */
 	public ResourceHandlerRegistration addResourceLocations(String... resourceLocations) {
-		MvcNamespaceUtils.loadResourceLocations(
-				resourceLocations, this.resourceLoader, this.locations, this.locationCharsets);
+		this.locationValues.addAll(Arrays.asList(resourceLocations));
 		return this;
 	}
 
@@ -106,9 +95,7 @@ public class ResourceHandlerRegistration {
 	/**
 	 * Specify the {@link org.springframework.http.CacheControl} which should be used
 	 * by the resource handler.
-	 *
 	 * <p>Setting a custom value here will override the configuration set with {@link #setCachePeriod}.
-	 *
 	 * @param cacheControl the CacheControl configuration to use
 	 * @return the same {@link ResourceHandlerRegistration} instance, for chained method invocation
 	 * @since 4.2
@@ -121,11 +108,9 @@ public class ResourceHandlerRegistration {
 	/**
 	 * Configure a chain of resource resolvers and transformers to use. This
 	 * can be useful, for example, to apply a version strategy to resource URLs.
-	 *
 	 * <p>If this method is not invoked, by default only a simple
 	 * {@link PathResourceResolver} is used in order to match URL paths to
 	 * resources under the configured locations.
-	 *
 	 * @param cacheResources whether to cache the result of resource resolution;
 	 * setting this to "true" is recommended for production (and "false" for
 	 * development, especially when applying a version strategy)
@@ -140,11 +125,9 @@ public class ResourceHandlerRegistration {
 	/**
 	 * Configure a chain of resource resolvers and transformers to use. This
 	 * can be useful, for example, to apply a version strategy to resource URLs.
-	 *
 	 * <p>If this method is not invoked, by default only a simple
 	 * {@link PathResourceResolver} is used in order to match URL paths to
 	 * resources under the configured locations.
-	 *
 	 * @param cacheResources whether to cache the result of resource resolution;
 	 * setting this to "true" is recommended for production (and "false" for
 	 * development, especially when applying a version strategy
@@ -161,15 +144,16 @@ public class ResourceHandlerRegistration {
 		return this.resourceChainRegistration;
 	}
 
+
 	/**
-	 * Returns the URL path patterns for the resource handler.
+	 * Return the URL path patterns for the resource handler.
 	 */
 	protected String[] getPathPatterns() {
 		return this.pathPatterns;
 	}
 
 	/**
-	 * Returns a {@link ResourceHttpRequestHandler} instance.
+	 * Return a {@link ResourceHttpRequestHandler} instance.
 	 */
 	protected ResourceHttpRequestHandler getRequestHandler() {
 		ResourceHttpRequestHandler handler = new ResourceHttpRequestHandler();
@@ -177,8 +161,7 @@ public class ResourceHandlerRegistration {
 			handler.setResourceResolvers(this.resourceChainRegistration.getResourceResolvers());
 			handler.setResourceTransformers(this.resourceChainRegistration.getResourceTransformers());
 		}
-		handler.setLocations(this.locations);
-		handler.setLocationCharsets(this.locationCharsets);
+		handler.setLocationValues(this.locationValues);
 		if (this.cacheControl != null) {
 			handler.setCacheControl(this.cacheControl);
 		}
